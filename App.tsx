@@ -163,11 +163,38 @@ export default function App() {
     });
   }, [session]);
 
+  useEffect(() => {
+    if (!session || role !== 'mechanic') return;
+    let active = true;
+    supabase.from('mechanic_profiles').select('is_online').eq('user_id', session.user.id).maybeSingle()
+      .then(({ data, error }) => {
+        if (active && !error) setOnline(Boolean(data?.is_online));
+      });
+    return () => { active = false; };
+  }, [session, role]);
+
   const visibleMechanics = useMemo(() => mechanics.filter((item) => {
     const matchesFilter = filter === 'All' || item.specialty === filter;
     const matchesSearch = (item.name + ' ' + item.specialty).toLowerCase().includes(search.toLowerCase());
     return matchesFilter && matchesSearch;
   }), [filter, search]);
+
+  const toggleAvailability = async () => {
+    if (!session) return;
+    const nextOnline = !online;
+    const { error } = await supabase.from('mechanic_profiles')
+      .update({ is_online: nextOnline, updated_at: new Date().toISOString() })
+      .eq('user_id', session.user.id);
+    if (error) {
+      Alert.alert('Could not update availability', error.message);
+      return;
+    }
+    setOnline(nextOnline);
+    Alert.alert(nextOnline ? 'Availability saved' : 'You are offline',
+      nextOnline
+        ? 'Your online status is saved. Customers will only discover you after you enable location sharing.'
+        : 'Your mechanic profile is no longer marked online.');
+  };
 
   const switchRole = (next: Role) => {
     setRole(next);
@@ -248,11 +275,11 @@ export default function App() {
               <View style={[styles.bigStatus, online && styles.bigStatusActive]}><View style={[styles.bigStatusDot, online && styles.bigStatusDotActive]} /></View>
             </View>
             <Text style={styles.onlineDescription}>{online ? 'You can be discovered by customers nearby while location sharing is active.' : 'Go online when you are ready to receive roadside assistance requests.'}</Text>
-            <TouchableOpacity style={[styles.goOnlineButton, online && styles.goOfflineButton]} onPress={() => setOnline(!online)}>
+            <TouchableOpacity style={[styles.goOnlineButton, online && styles.goOfflineButton]} onPress={toggleAvailability}>
               <Ionicons name={online ? 'pause-circle-outline' : 'radio-outline'} size={18} color={online ? '#EAF0E8' : '#0A1110'} />
               <Text style={[styles.goOnlineText, online && styles.goOfflineText]}>{online ? 'GO OFFLINE' : 'GO ONLINE'}</Text>
             </TouchableOpacity>
-            <Text style={styles.locationDisclaimer}>Demo toggle only · GPS sharing activates after permissions and backend are configured.</Text>
+            <Text style={styles.locationDisclaimer}>Availability is saved to your account. GPS sharing is not active yet, so customers cannot discover you through live nearby search.</Text>
           </View>
           <View style={styles.statsRow}>
             <View style={styles.statCard}><Text style={styles.statNumber}>0</Text><Text style={styles.statLabel}>New requests</Text></View>

@@ -2,10 +2,12 @@ import React, { useEffect, useMemo, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
 import AuthScreen from './components/AuthScreen';
+import ProfileSetupScreen from './components/ProfileSetupScreen';
 import {
   ActivityIndicator,
   Alert,
   Linking,
+  Modal,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -130,6 +132,7 @@ export default function App() {
   const [search, setSearch] = useState('');
   const [online, setOnline] = useState(false);
   const [tab, setTab] = useState('Explore');
+  const [profileOpen, setProfileOpen] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -263,7 +266,7 @@ export default function App() {
             ['shield-checkmark-outline', 'Get verified', 'Build trust with customers nearby'],
             ['call-outline', 'Add your phone number', 'Let customers reach you directly'],
           ].map(([icon, title, subtitle]) => (
-            <TouchableOpacity key={title} style={styles.setupRow} onPress={() => Alert.alert(title, 'Profile setup will be connected to your account in the next development milestone.')}>
+            <TouchableOpacity key={title} style={styles.setupRow} onPress={() => setProfileOpen(true)}>
               <View style={styles.setupIcon}><Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={19} color="#C7F36B" /></View>
               <View style={styles.setupCopy}><Text style={styles.setupTitle}>{title}</Text><Text style={styles.setupSubtitle}>{subtitle}</Text></View>
               <Ionicons name="chevron-forward" size={17} color="#819087" />
@@ -272,6 +275,9 @@ export default function App() {
         </ScrollView>
       )}
 
+      <Modal visible={profileOpen} animationType="slide" onRequestClose={() => setProfileOpen(false)}>
+        {session && <ProfileSetupScreen userId={session.user.id} role={role} onClose={() => setProfileOpen(false)} />}
+      </Modal>
       <View style={styles.tabBar}>
         <TouchableOpacity style={styles.tabItem} onPress={() => setTab(role === 'customer' ? 'Explore' : 'Dashboard')}>
           <Ionicons name={role === 'customer' ? 'compass' : 'grid'} size={20} color="#C7F36B" /><Text style={styles.tabActiveText}>{role === 'customer' ? 'Explore' : 'Dashboard'}</Text>
@@ -282,7 +288,7 @@ export default function App() {
         <TouchableOpacity style={styles.tabItem} onPress={() => Alert.alert('Messages', 'Your customer and mechanic conversations will appear here.')}>
           <Ionicons name="chatbubble-ellipses-outline" size={20} color="#78857C" /><Text style={styles.tabText}>Messages</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.tabItem} onPress={() => Alert.alert('Account', 'Would you like to sign out?', [{ text: 'Cancel', style: 'cancel' }, { text: 'Sign out', style: 'destructive', onPress: () => { void supabase.auth.signOut(); } }])}>
+        <TouchableOpacity style={styles.tabItem} onPress={() => setProfileOpen(true)}>
           <Ionicons name="person-outline" size={20} color="#78857C" /><Text style={styles.tabText}>Profile</Text>
         </TouchableOpacity>
       </View>

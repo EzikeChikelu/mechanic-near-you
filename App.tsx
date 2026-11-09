@@ -1,4 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator } from 'react-native';
+import type { Session } from '@supabase/supabase-js';
+import { supabase } from './lib/supabase';
+import AuthScreen from './components/AuthScreen';
 import {
   Alert,
   Linking,
@@ -119,11 +123,42 @@ function MapPreview() {
 }
 
 export default function App() {
+  const [session, setSession] = useState<Session | null>(null);
+  const [authReady, setAuthReady] = useState(false);
   const [role, setRole] = useState<Role>('customer');
   const [filter, setFilter] = useState<Specialty>('All');
   const [search, setSearch] = useState('');
   const [online, setOnline] = useState(false);
   const [tab, setTab] = useState('Explore');
+
+  useEffect(() => {
+    let alive = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (alive) {
+        setSession(data.session);
+        setAuthReady(true);
+      }
+    }).catch(() => {
+      if (alive) setAuthReady(true);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession);
+    });
+    return () => {
+      alive = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!session) return;
+    supabase.from('profiles').select('role').eq('id', session.user.id).single().then(({ data }) => {
+      if (data?.role === 'customer' || data?.role === 'mechanic') {
+        setRole(data.role);
+        setTab(data.role === 'customer' ? 'Explore' : 'Dashboard');
+      }
+    });
+  }, [session]);
 
   const visibleMechanics = useMemo(() => mechanics.filter((item) => {
     const matchesFilter = filter === 'All' || item.specialty === filter;
@@ -135,6 +170,16 @@ export default function App() {
     setRole(next);
     setTab(next === 'customer' ? 'Explore' : 'Dashboard');
   };
+
+  if (!authReady) {
+    return (
+      <SafeAreaView style={[styles.safe, { alignItems: 'center', justifyContent: 'center' }]}>
+        <ActivityIndicator size="large" color="#C7F36B" />
+        <Text style={{ color: '#A0ADA3', marginTop: 12, fontSize: 12 }}>Loading your account…</Text>
+      </SafeAreaView>
+    );
+  }
+  if (!session) return <AuthScreen />;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -237,7 +282,7 @@ export default function App() {
         <TouchableOpacity style={styles.tabItem} onPress={() => Alert.alert('Messages', 'Your customer and mechanic conversations will appear here.')}>
           <Ionicons name="chatbubble-ellipses-outline" size={20} color="#78857C" /><Text style={styles.tabText}>Messages</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.tabItem} onPress={() => Alert.alert('Profile', 'Account settings will be available after authentication is connected.')}>
+        <TouchableOpacity style={styles.tabItem} onPress={() => Alert.alert('Account', 'Would you like to sign out?', [{ text: 'Cancel', style: 'cancel' }, { text: 'Sign out', style: 'destructive', onPress: () => { void supabase.auth.signOut(); } }])}>
           <Ionicons name="person-outline" size={20} color="#78857C" /><Text style={styles.tabText}>Profile</Text>
         </TouchableOpacity>
       </View>

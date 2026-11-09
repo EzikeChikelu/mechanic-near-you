@@ -171,8 +171,20 @@ export default function App() {
     if (!session || role !== 'mechanic') return;
     let active = true;
     supabase.from('mechanic_profiles').select('is_online').eq('user_id', session.user.id).maybeSingle()
-      .then(({ data, error }) => {
-        if (active && !error) setOnline(Boolean(data?.is_online));
+      .then(async ({ data, error }) => {
+        if (!active || error) return;
+        // Foreground location watching does not survive an app restart. Never
+        // restore an online state without a fresh, user-initiated location session.
+        if (data?.is_online) {
+          await supabase.from('mechanic_profiles')
+            .update({ is_online: false, updated_at: new Date().toISOString() })
+            .eq('user_id', session.user.id);
+          await supabase.from('mechanic_locations').delete().eq('mechanic_id', session.user.id);
+        }
+        if (active) {
+          setOnline(false);
+          setLocationSharing(false);
+        }
       });
     return () => { active = false; };
   }, [session, role]);

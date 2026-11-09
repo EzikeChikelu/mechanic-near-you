@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import * as Location from 'expo-location';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
 import AuthScreen from './components/AuthScreen';
@@ -20,6 +21,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 
 type Role = 'customer' | 'mechanic';
+type LocationWatcher = Location.LocationSubscription;
 type Specialty = 'All' | 'Electrical' | 'Engine' | 'Tyres' | 'Diagnostics';
 
 type Mechanic = {
@@ -133,6 +135,8 @@ export default function App() {
   const [online, setOnline] = useState(false);
   const [tab, setTab] = useState('Explore');
   const [profileOpen, setProfileOpen] = useState(false);
+  const [locationSharing, setLocationSharing] = useState(false);
+  const locationWatcher = useRef<LocationWatcher | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -179,17 +183,81 @@ export default function App() {
     return matchesFilter && matchesSearch;
   }), [filter, search]);
 
+  const stopLocationSharing = async () => {
+    locationWatcher.current?.remove();
+    locationWatcher.current = null;
+    setLocationSharing(false);
+  };
+
+  const startLocationSharing = async () => {
+    if (!session) return;
+    try {
+      const permission = await Location.requestForegroundPermissionsAsync();
+      if (permission.status !== 'granted') {
+        Alert.alert('Location permission needed', 'Allow location access while using the app to share your live position with nearby customers. You can stay offline if you prefer not to share it.');
+        return;
+      }
+      const current = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const point = {
+        mechanic_id: session.user.id,
+        location: `POINT(${current.coords.longitude} ${current.coords.latitude})`,
+        accuracy_m: current.coords.accuracy,
+        heading: current.coords.heading,
+        updated_at: new Date().toISOString(),
+      };
+      const { error: locationError } = await supabase.from('mechanic_locations').upsert(point, { onConflict: 'mechanic_id' });
+      if (locationError) throw locationError;
+      const { error: onlineError } = await supabase.from('mechanic_profiles')
+        .update({ is_online: true, updated_at: new Date().toISOString() })
+        .eq('user_id', session.user.id);
+      if (onlineError) throw onlineError;
+      locationWatcher.current?.remove();
+      locationWatcher.current = await Location.watchPositionAsync(
+        { accuracy: Location.Accuracy.Balanced, timeInterval: 60000, distanceInterval: 50 },
+        async (position) => {
+          const { error } = await supabase.from('mechanic_locations').upsert({
+            mechanic_id: session.user.id,
+            location: `POINT(${position.coords.longitude} ${position.coords.latitude})`,
+            accuracy_m: position.coords.accuracy,
+            heading: position.coords.heading,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'mechanic_id' });
+          if (error) console.warn('Location update failed:', error.message);
+        },
+      );
+      setOnline(true);
+      setLocationSharing(true);
+    } catch (error) {
+      await stopLocationSharing();
+      await supabase.from('mechanic_profiles').update({ is_online: false, updated_at: new Date().toISOString() }).eq('user_id', session.user.id);
+      await supabase.from('mechanic_locations').delete().eq('mechanic_id', session.user.id);
+      Alert.alert('Could not start location sharing', error instanceof Error ? error.message : 'Please try again.');
+    }
+  };
+
   const toggleAvailability = async () => {
     if (!session) return;
-    const nextOnline = !online;
-    const { error } = await supabase.from('mechanic_profiles')
-      .update({ is_online: nextOnline, updated_at: new Date().toISOString() })
-      .eq('user_id', session.user.id);
-    if (error) {
-      Alert.alert('Could not update availability', error.message);
+    if (online) {
+      await stopLocationSharing();
+      const { error: locationError } = await supabase.from('mechanic_locations').delete().eq('mechanic_id', session.user.id);
+      const { error } = await supabase.from('mechanic_profiles')
+        .update({ is_online: false, updated_at: new Date().toISOString() })
+        .eq('user_id', session.user.id);
+      if (error || locationError) {
+        Alert.alert('Could not go offline', error?.message ?? locationError?.message ?? 'Please try again.');
+        return;
+      }
+      setOnline(false);
       return;
     }
-    setOnline(nextOnline);
+    Alert.alert(
+      'Share your location?',
+      'While you are using Mechanic Near You, your approximate live location will be shared with the service so nearby customers can find you. Updates stop when you go offline. This first version does not track you in the background.',
+      [
+        { text: 'Not now', style: 'cancel' },
+        { text: 'Allow and go online', onPress: () => { void startLocationSharing(); } },
+      ],
+    );
   };
 
   const switchRole = (next: Role) => {
@@ -275,7 +343,7 @@ export default function App() {
               <Ionicons name={online ? 'pause-circle-outline' : 'radio-outline'} size={18} color={online ? '#EAF0E8' : '#0A1110'} />
               <Text style={[styles.goOnlineText, online && styles.goOfflineText]}>{online ? 'GO OFFLINE' : 'GO ONLINE'}</Text>
             </TouchableOpacity>
-            <Text style={styles.locationDisclaimer}>Availability is saved to your account. GPS sharing is not active yet, so customers cannot discover you through live nearby search.</Text>
+            <Text style={styles.locationDisclaimer}>{locationSharing ? 'Location sharing is active while this app is open. Go offline to stop sharing and remove your saved location.' : 'Go online to share your location while using the app. Background tracking is not enabled.'}</Text>
           </View>
           <View style={styles.statsRow}>
             <View style={styles.statCard}><Text style={styles.statNumber}>0</Text><Text style={styles.statLabel}>New requests</Text></View>

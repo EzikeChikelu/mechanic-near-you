@@ -96,7 +96,7 @@ function MechanicCard({ mechanic }: { mechanic: Mechanic }) {
           </TouchableOpacity>
           <TouchableOpacity style={styles.requestButton} onPress={request} activeOpacity={0.8}>
             <Text style={styles.requestButtonText}>Request help</Text>
-            <Ionicons name="arrow-up-right" size={15} color="#C7F36B" />
+            <Ionicons name="arrow-up-right-box" size={15} color="#C7F36B" />
           </TouchableOpacity>
         </View>
       </View>

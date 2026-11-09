@@ -59,13 +59,17 @@ The current map is a UI preview, not a live map. Select a maps provider and conf
 
 ## Current implementation status
 
+- Mechanic location sharing currently uses foreground-only GPS updates after an explicit in-app explanation and Android permission grant. The app writes the mechanic's own `mechanic_locations` row while the app is in use, and going offline deletes that row and sets `is_online = false`. A fresh location session is required after an app restart; background tracking and a persistent foreground-service notification are not implemented in this milestone.
+
 - [x] Expo / React Native TypeScript repository foundation.
 - [x] Customer and mechanic UI preview.
 - [x] Mechanic search/filter interaction and direct dial action using sample data.
 - [x] Initial PostGIS schema and RLS policies.
 - [ ] Supabase project credentials and schema deployment.
 - [ ] Real authentication and role onboarding.
-- [ ] Live GPS writes and nearby discovery.
+- [x] Consent-based foreground GPS writes for mechanics.
+- [ ] Customer-side nearby discovery and live map results.
+- [ ] Background location / Android foreground service (only if justified and separately disclosed).
 - [ ] Real map provider and map markers.
 - [ ] Booking state machine, realtime chat and push notifications.
 - [ ] Identity verification, abuse reporting and production QA.

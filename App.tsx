@@ -190,10 +190,6 @@ export default function App() {
       return;
     }
     setOnline(nextOnline);
-    Alert.alert(nextOnline ? 'Availability saved' : 'You are offline',
-      nextOnline
-        ? 'Your online status is saved. Customers will only discover you after you enable location sharing.'
-        : 'Your mechanic profile is no longer marked online.');
   };
 
   const switchRole = (next: Role) => {

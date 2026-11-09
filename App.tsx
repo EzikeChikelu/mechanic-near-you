@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator } from 'react-native';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
 import AuthScreen from './components/AuthScreen';
 import {
+  ActivityIndicator,
   Alert,
   Linking,
   SafeAreaView,

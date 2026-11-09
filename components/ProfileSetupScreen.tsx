@@ -119,6 +119,17 @@ export default function ProfileSetupScreen({ userId, role, onClose }: { userId: 
         <TouchableOpacity disabled={saving} onPress={save} style={[styles.save, saving && { opacity: 0.6 }]}>
           {saving ? <ActivityIndicator color="#0A1110" /> : <><Text style={styles.saveText}>SAVE PROFILE</Text><Ionicons name="checkmark" size={18} color="#0A1110" /></>}
         </TouchableOpacity>
+        <TouchableOpacity
+          onPress={async () => {
+            const { error } = await supabase.auth.signOut();
+            if (error) Alert.alert('Could not sign out', error.message);
+            else onClose();
+          }}
+          style={styles.signOut}
+        >
+          <Ionicons name="log-out-outline" size={17} color="#F0A39B" />
+          <Text style={styles.signOutText}>SIGN OUT</Text>
+        </TouchableOpacity>
       </ScrollView>}
     </View>
   );
@@ -144,4 +155,6 @@ const styles = StyleSheet.create({
   notice: { color: '#9C9A76', fontSize: 10, lineHeight: 16, marginTop: 18 },
   save: { height: 51, borderRadius: 13, backgroundColor: '#C7F36B', marginTop: 28, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   saveText: { color: '#0A1110', fontSize: 11, fontWeight: '900', letterSpacing: 1 },
+  signOut: { height: 48, borderRadius: 13, borderWidth: 1, borderColor: '#5A3430', marginTop: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  signOutText: { color: '#F0A39B', fontSize: 10, fontWeight: '900', letterSpacing: 1 },
 });

@@ -18,6 +18,15 @@ npm install
 npx expo start
 ```
 
+## Supabase setup
+
+1. Copy `.env.example` to `.env` in the project root.
+2. Set `EXPO_PUBLIC_SUPABASE_URL` to your Supabase project URL (the base URL, without `/rest/v1/`).
+3. Set `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` to the project's publishable key.
+4. Restart Expo after changing environment variables.
+
+The `.env` file is ignored by Git. Never add a database password or service-role/secret key to the mobile app.
+
 ## Planned integrations
 
 - Supabase Auth, PostgreSQL/PostGIS, Row Level Security and Realtime.
@@ -27,4 +36,4 @@ npx expo start
 
 ## Current status
 
-Initial project setup. Live accounts, GPS discovery, booking, chat, verification and notifications require backend credentials and service configuration before they can operate in production.
+Initial project setup and Supabase client configuration. Live accounts, GPS discovery, booking, chat, verification and notifications still require backend setup and implementation before they can operate in production.

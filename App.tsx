@@ -150,6 +150,12 @@ export default function App() {
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession);
+      if (!nextSession) {
+        locationWatcher.current?.remove();
+        locationWatcher.current = null;
+        setLocationSharing(false);
+        setOnline(false);
+      }
     });
     return () => {
       alive = false;

@@ -121,6 +121,21 @@ export default function ProfileSetupScreen({ userId, role, onClose }: { userId: 
         </TouchableOpacity>
         <TouchableOpacity
           onPress={async () => {
+            if (role === 'mechanic') {
+              const { error: offlineError } = await supabase.from('mechanic_profiles')
+                .update({ is_online: false, updated_at: new Date().toISOString() })
+                .eq('user_id', userId);
+              if (offlineError) {
+                Alert.alert('Could not sign out safely', offlineError.message);
+                return;
+              }
+              const { error: locationError } = await supabase.from('mechanic_locations')
+                .delete().eq('mechanic_id', userId);
+              if (locationError) {
+                Alert.alert('Could not clear shared location', locationError.message);
+                return;
+              }
+            }
             const { error } = await supabase.auth.signOut();
             if (error) Alert.alert('Could not sign out', error.message);
             else onClose();

@@ -68,7 +68,8 @@ The current map is a UI preview, not a live map. Select a maps provider and conf
 - [ ] Supabase project credentials and schema deployment.
 - [ ] Real authentication and role onboarding.
 - [x] Consent-based foreground GPS writes for mechanics.
-- [ ] Customer-side nearby discovery and live map results.
+- [x] Customer-side nearby mechanic discovery through the PostGIS RPC (verified, online mechanics with fresh location pings; 15 km app search radius).
+- [ ] Live map tiles and mechanic map markers.
 - [ ] Background location / Android foreground service (only if justified and separately disclosed).
 - [ ] Real map provider and map markers.
 - [ ] Booking state machine, realtime chat and push notifications.

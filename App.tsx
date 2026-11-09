@@ -32,10 +32,10 @@ type Mechanic = {
 };
 
 const mechanics: Mechanic[] = [
-  { id: '1', name: 'Tunde Auto Care', initials: 'TA', specialty: 'Engine', distance: '0.8 km', rating: '4.9', jobs: 128, eta: '5 min', phone: '+2348012345678', verified: true, available: true, color: '#C7F36B' },
-  { id: '2', name: 'Emeka Auto Electric', initials: 'EA', specialty: 'Electrical', distance: '1.4 km', rating: '4.8', jobs: 96, eta: '8 min', phone: '+2348023456789', verified: true, available: true, color: '#A8C8FF' },
-  { id: '3', name: 'Kunle Tyre & Wheel', initials: 'KT', specialty: 'Tyres', distance: '2.1 km', rating: '4.7', jobs: 74, eta: '11 min', phone: '+2348034567890', verified: true, available: true, color: '#F5C58A' },
-  { id: '4', name: 'Musa Diagnostics', initials: 'MD', specialty: 'Diagnostics', distance: '3.6 km', rating: '4.9', jobs: 211, eta: '15 min', phone: '+2348045678901', verified: false, available: true, color: '#D9B6FF' },
+  { id: '1', name: 'Tunde Auto Care', initials: 'TA', specialty: 'Engine', distance: '0.8 km', rating: '4.9', jobs: 128, eta: '5 min', phone: '', verified: true, available: true, color: '#C7F36B' },
+  { id: '2', name: 'Emeka Auto Electric', initials: 'EA', specialty: 'Electrical', distance: '1.4 km', rating: '4.8', jobs: 96, eta: '8 min', phone: '', verified: true, available: true, color: '#A8C8FF' },
+  { id: '3', name: 'Kunle Tyre & Wheel', initials: 'KT', specialty: 'Tyres', distance: '2.1 km', rating: '4.7', jobs: 74, eta: '11 min', phone: '', verified: true, available: true, color: '#F5C58A' },
+  { id: '4', name: 'Musa Diagnostics', initials: 'MD', specialty: 'Diagnostics', distance: '3.6 km', rating: '4.9', jobs: 211, eta: '15 min', phone: '', verified: false, available: true, color: '#D9B6FF' },
 ];
 
 const filters: Specialty[] = ['All', 'Electrical', 'Engine', 'Tyres', 'Diagnostics'];
@@ -49,7 +49,7 @@ function IconButton({ name, onPress }: { name: keyof typeof Ionicons.glyphMap; o
 }
 
 function MechanicCard({ mechanic }: { mechanic: Mechanic }) {
-  const call = () => Linking.openURL('tel:' + mechanic.phone).catch(() => Alert.alert('Unable to call', 'Please try again.'));
+  const call = () => mechanic.phone ? Linking.openURL('tel:' + mechanic.phone).catch(() => Alert.alert('Unable to call', 'Please try again.')) : Alert.alert('Demo profile', 'This sample mechanic has no real phone number. Real contact details will appear after backend setup.');
   const request = () => Alert.alert('Request assistance', 'Service requests will be enabled when the secure backend is connected.', [{ text: 'Got it' }]);
 
   return (

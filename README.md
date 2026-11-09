@@ -29,11 +29,11 @@ The `.env` file is ignored by Git. Never add a database password or service-role
 
 ## Planned integrations
 
-- Supabase Auth, PostgreSQL/PostGIS, Row Level Security and Realtime.
+- Supabase Auth sign-up/sign-in with customer and mechanic roles; PostgreSQL/PostGIS, Row Level Security and Realtime.
 - Expo Location for consent-based mechanic location updates.
 - Google Maps or another supported maps provider.
 - Push notifications for new service requests.
 
 ## Current status
 
-Initial project setup and Supabase client configuration. Live accounts, GPS discovery, booking, chat, verification and notifications still require backend setup and implementation before they can operate in production.
+Initial project setup, Supabase client configuration, and email/password authentication screens. Apply migrations `0001`–`0003` in the Supabase SQL Editor. GPS discovery, booking, chat, verification and notifications still require further implementation and testing before production.

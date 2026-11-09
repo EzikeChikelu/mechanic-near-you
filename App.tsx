@@ -39,12 +39,7 @@ type Mechanic = {
   color: string;
 };
 
-const mechanics: Mechanic[] = [
-  { id: '1', name: 'Tunde Auto Care', initials: 'TA', specialty: 'Engine', distance: '0.8 km', rating: '4.9', jobs: 128, eta: '5 min', phone: '', verified: true, available: true, color: '#C7F36B' },
-  { id: '2', name: 'Emeka Auto Electric', initials: 'EA', specialty: 'Electrical', distance: '1.4 km', rating: '4.8', jobs: 96, eta: '8 min', phone: '', verified: true, available: true, color: '#A8C8FF' },
-  { id: '3', name: 'Kunle Tyre & Wheel', initials: 'KT', specialty: 'Tyres', distance: '2.1 km', rating: '4.7', jobs: 74, eta: '11 min', phone: '', verified: true, available: true, color: '#F5C58A' },
-  { id: '4', name: 'Musa Diagnostics', initials: 'MD', specialty: 'Diagnostics', distance: '3.6 km', rating: '4.9', jobs: 211, eta: '15 min', phone: '', verified: false, available: true, color: '#D9B6FF' },
-];
+const mechanicColors = ['#C7F36B', '#A8C8FF', '#F5C58A', '#D9B6FF'];
 
 const filters: Specialty[] = ['All', 'Electrical', 'Engine', 'Tyres', 'Diagnostics'];
 
@@ -116,12 +111,8 @@ function MapPreview() {
       <View style={[styles.road, styles.roadFour]} />
       <View style={styles.mapLabelOne}><Text style={styles.mapLabel}>ADEKUNLE STREET</Text></View>
       <View style={styles.mapLabelTwo}><Text style={styles.mapLabel}>HERBERT MACAULAY WAY</Text></View>
-      <View style={[styles.pin, { top: 47, left: '24%' }]}><Ionicons name="construct" size={14} color="#0A1110" /></View>
-      <View style={[styles.pin, { top: 92, right: '23%' }]}><Ionicons name="construct" size={14} color="#0A1110" /></View>
-      <View style={[styles.pin, { bottom: 32, left: '54%' }]}><Ionicons name="construct" size={14} color="#0A1110" /></View>
-      <View style={styles.youPin}><View style={styles.youPinCore} /></View>
-      <View style={styles.mapLegend}><View style={styles.legendDot} /><Text style={styles.legendText}>You</Text><View style={styles.legendMechanic} /><Text style={styles.legendText}>Available mechanics</Text></View>
-      <View style={styles.mapCaption}><Ionicons name="location" size={12} color="#C7F36B" /><Text style={styles.mapCaptionText}>Map preview · connect GPS to see live results</Text></View>
+      <View style={styles.mapLegend}><Ionicons name="map-outline" size={16} color="#C7F36B" /><Text style={styles.legendText}>Live map will appear after map provider setup</Text></View>
+      <View style={styles.mapCaption}><Ionicons name="location" size={12} color="#C7F36B" /><Text style={styles.mapCaptionText}>Your exact location is not shown to mechanics</Text></View>
     </View>
   );
 }
@@ -136,6 +127,9 @@ export default function App() {
   const [tab, setTab] = useState('Explore');
   const [profileOpen, setProfileOpen] = useState(false);
   const [locationSharing, setLocationSharing] = useState(false);
+  const [nearbyMechanics, setNearbyMechanics] = useState<Mechanic[]>([]);
+  const [nearbyLoading, setNearbyLoading] = useState(false);
+  const [nearbyMessage, setNearbyMessage] = useState('Tap Find mechanics to search for verified professionals near your location.');
   const locationWatcher = useRef<LocationWatcher | null>(null);
 
   useEffect(() => {
@@ -195,11 +189,65 @@ export default function App() {
     return () => { active = false; };
   }, [session, role]);
 
-  const visibleMechanics = useMemo(() => mechanics.filter((item) => {
+  const visibleMechanics = useMemo(() => nearbyMechanics.filter((item) => {
     const matchesFilter = filter === 'All' || item.specialty === filter;
     const matchesSearch = (item.name + ' ' + item.specialty).toLowerCase().includes(search.toLowerCase());
     return matchesFilter && matchesSearch;
-  }), [filter, search]);
+  }), [nearbyMechanics, filter, search]);
+
+  const findNearbyMechanics = async () => {
+    if (!session || nearbyLoading) return;
+    setNearbyLoading(true);
+    setNearbyMessage('Getting your location and searching nearby…');
+    try {
+      const permission = await Location.requestForegroundPermissionsAsync();
+      if (permission.status !== 'granted') {
+        setNearbyMessage('Location permission is needed to find mechanics near you.');
+        return;
+      }
+      const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const { data, error } = await supabase.rpc('find_nearby_mechanics', {
+        customer_lat: position.coords.latitude,
+        customer_lon: position.coords.longitude,
+        radius_m: 15000,
+      });
+      if (error) throw error;
+      const rows = (data ?? []) as Array<{
+        mechanic_id: string; display_name: string | null; phone: string | null;
+        distance_m: number; average_rating: number | null; completed_jobs: number | null;
+        services: string[] | null;
+      }>;
+      const mapped: Mechanic[] = rows.map((item, index) => {
+        const services = item.services ?? [];
+        const label = services.join(' ').toLowerCase();
+        const specialty: Exclude<Specialty, 'All'> =
+          /electric|battery|wiring/.test(label) ? 'Electrical' :
+          /tyre|tire|wheel/.test(label) ? 'Tyres' :
+          /diagnostic|scan/.test(label) ? 'Diagnostics' : 'Engine';
+        const name = item.display_name?.trim() || 'Verified mechanic';
+        return {
+          id: item.mechanic_id,
+          name,
+          initials: name.split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase(),
+          specialty,
+          distance: item.distance_m < 1000 ? `${item.distance_m} m` : `${(item.distance_m / 1000).toFixed(1)} km`,
+          rating: item.average_rating == null ? 'New' : Number(item.average_rating).toFixed(1),
+          jobs: item.completed_jobs ?? 0,
+          eta: '—',
+          phone: item.phone ?? '',
+          verified: true,
+          available: true,
+          color: mechanicColors[index % mechanicColors.length],
+        };
+      });
+      setNearbyMechanics(mapped);
+      setNearbyMessage(mapped.length ? 'Showing verified mechanics within 15 km. Distances are approximate.' : 'No verified mechanics are online nearby right now. Try again later or expand your search area.');
+    } catch (error) {
+      setNearbyMessage(error instanceof Error ? error.message : 'Could not search nearby mechanics. Please try again.');
+    } finally {
+      setNearbyLoading(false);
+    }
+  };
 
   const stopLocationSharing = async () => {
     locationWatcher.current?.remove();
@@ -333,8 +381,12 @@ export default function App() {
             <Ionicons name="options-outline" size={18} color="#C7F36B" />
           </View>
           <MapPreview />
+          <TouchableOpacity style={styles.goOnlineButton} onPress={findNearbyMechanics} disabled={nearbyLoading}>
+            {nearbyLoading ? <ActivityIndicator color="#0A1110" /> : <><Ionicons name="navigate-outline" size={17} color="#0A1110" /><Text style={styles.goOnlineText}>FIND MECHANICS NEAR ME</Text></>}
+          </TouchableOpacity>
+          <Text style={styles.locationDisclaimer}>{nearbyMessage}</Text>
           <View style={styles.sectionHeading}>
-            <View><Text style={styles.sectionTitle}>Mechanics near you</Text><Text style={styles.sectionSub}>Available professionals in your area</Text></View>
+            <View><Text style={styles.sectionTitle}>Verified mechanics nearby</Text><Text style={styles.sectionSub}>Online professionals within 15 km</Text></View>
             <Text style={styles.resultCount}>{visibleMechanics.length} FOUND</Text>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
@@ -345,7 +397,7 @@ export default function App() {
             ))}
           </ScrollView>
           {visibleMechanics.map((mechanic) => <MechanicCard key={mechanic.id} mechanic={mechanic} />)}
-          <View style={styles.bottomNote}><Ionicons name="information-circle-outline" size={15} color="#89968D" /><Text style={styles.bottomNoteText}>Demo profiles for preview only. Live mechanic listings will appear after backend setup.</Text></View>
+          {!nearbyLoading && nearbyMechanics.length === 0 && <View style={styles.bottomNote}><Ionicons name="information-circle-outline" size={15} color="#89968D" /><Text style={styles.bottomNoteText}>Only verified mechanics who are online and have shared a recent location can appear here.</Text></View>}
         </ScrollView>
       ) : (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>

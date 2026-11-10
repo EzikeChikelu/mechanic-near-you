@@ -50,7 +50,7 @@ Background location is not silently enabled. Request it only if product testing 
 - Keep exact mechanic coordinates private; discovery returns a distance only.
 - Limit request and chat access to the customer and assigned mechanic.
 - Store verification documents in a private Storage bucket with restricted access.
-- Require verified status before mechanics appear in public discovery.
+- Current pilot listing status is profile-completion based and is NOT identity, licence or background verification. Complete real-world verification before public launch.
 - Add server-side validation for request state transitions, rate limits and abuse prevention before launch.
 
 ## Maps and external services
@@ -65,12 +65,15 @@ The current map is a UI preview, not a live map. Select a maps provider and conf
 - [x] Customer and mechanic UI preview.
 - [x] Mechanic search/filter interaction and direct dial action using sample data.
 - [x] Initial PostGIS schema and RLS policies.
-- [ ] Supabase project credentials and schema deployment.
+- [x] Supabase project credentials and schema deployment (migrations 0001–0004 applied by the project owner; apply 0005 for booking).
 - [ ] Real authentication and role onboarding.
 - [x] Consent-based foreground GPS writes for mechanics.
 - [x] Customer-side nearby mechanic discovery through the PostGIS RPC (verified, online mechanics with fresh location pings; 15 km app search radius).
 - [ ] Live map tiles and mechanic map markers.
 - [ ] Background location / Android foreground service (only if justified and separately disclosed).
 - [ ] Real map provider and map markers.
-- [ ] Booking state machine, realtime chat and push notifications.
+- [x] Customer service-request creation with vehicle/problem details and consent-based pickup GPS.
+- [x] Customer request history and mechanic incoming-job inbox.
+- [x] Server-side request status transitions (accept, decline, en route, in progress, complete, customer cancel).
+- [ ] Realtime chat and push notifications.
 - [ ] Identity verification, abuse reporting and production QA.

@@ -4,9 +4,11 @@ create policy "Customers can request available mechanics" on public.service_requ
 for insert to authenticated with check (
  customer_id=auth.uid()
  and exists(select 1 from public.profiles p where p.id=auth.uid() and p.role='customer')
- and mechanic_id is not null
+ and status='pending'
+ and pickup_location is not null
+ and service_requests.mechanic_id is not null
  and exists(select 1 from public.mechanic_profiles mp join public.mechanic_locations ml on ml.mechanic_id=mp.user_id
-  where mp.user_id=mechanic_id and mp.is_online=true and mp.verification_status='verified'
+  where mp.user_id=service_requests.mechanic_id and mp.is_online=true and mp.verification_status='verified'
   and ml.updated_at>now()-interval '5 minutes')
 );
 drop policy if exists "Participants can update service requests" on public.service_requests;

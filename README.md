@@ -36,4 +36,4 @@ The `.env` file is ignored by Git. Never add a database password or service-role
 
 ## Current status
 
-Initial project setup, Supabase client configuration, and email/password authentication screens. Apply migrations `0001`–`0003` in the Supabase SQL Editor. GPS discovery, booking, chat, verification and notifications still require further implementation and testing before production.
+Initial project setup, Supabase client configuration, and email/password authentication screens. Apply migrations `0001`–`0005` in order in the Supabase SQL Editor. Migrations `0001`–`0004` establish the current pilot schema and profile-completion listing rule; `0005` enables customer roadside-help requests and secure request-status transitions. The app now includes request creation, customer request history, and a mechanic job inbox. In-app chat, realtime updates, push notifications, live maps, and formal identity/licence verification remain future work. The profile-completion listing rule is not proof of identity verification.

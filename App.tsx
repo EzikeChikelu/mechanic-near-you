@@ -55,7 +55,6 @@ function IconButton({ name, onPress }: { name: keyof typeof Ionicons.glyphMap; o
 
 function MechanicCard({ mechanic, onRequest }: { mechanic: Mechanic; onRequest: (mechanic: Mechanic) => void }) {
   const call = () => mechanic.phone ? Linking.openURL('tel:' + mechanic.phone).catch(() => Alert.alert('Unable to call', 'Please try again.')) : Alert.alert('Phone number unavailable', 'This mechanic has not added a contact number yet.');
-  const request = () => Alert.alert('Booking coming next', 'You can call this mechanic when a phone number is available. In-app service requests are the next feature being built.', [{ text: 'Got it' }]);
 
   return (
     <View style={styles.mechanicCard}>

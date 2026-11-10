@@ -4,6 +4,8 @@ import type { Session } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
 import AuthScreen from './components/AuthScreen';
 import ProfileSetupScreen from './components/ProfileSetupScreen';
+import RequestHelpModal from './components/RequestHelpModal';
+import ServiceRequestsScreen from './components/ServiceRequestsScreen';
 import {
   ActivityIndicator,
   Alert,
@@ -51,7 +53,7 @@ function IconButton({ name, onPress }: { name: keyof typeof Ionicons.glyphMap; o
   );
 }
 
-function MechanicCard({ mechanic }: { mechanic: Mechanic }) {
+function MechanicCard({ mechanic, onRequest }: { mechanic: Mechanic; onRequest: (mechanic: Mechanic) => void }) {
   const call = () => mechanic.phone ? Linking.openURL('tel:' + mechanic.phone).catch(() => Alert.alert('Unable to call', 'Please try again.')) : Alert.alert('Phone number unavailable', 'This mechanic has not added a contact number yet.');
   const request = () => Alert.alert('Booking coming next', 'You can call this mechanic when a phone number is available. In-app service requests are the next feature being built.', [{ text: 'Got it' }]);
 
@@ -91,7 +93,7 @@ function MechanicCard({ mechanic }: { mechanic: Mechanic }) {
             <Ionicons name="call-outline" size={16} color="#0B110D" />
             <Text style={styles.callButtonText}>Call</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.requestButton} onPress={request} activeOpacity={0.8}>
+          <TouchableOpacity style={styles.requestButton} onPress={() => onRequest(mechanic)} activeOpacity={0.8}>
             <Text style={styles.requestButtonText}>Request help</Text>
             <Ionicons name="arrow-up-right-box" size={15} color="#C7F36B" />
           </TouchableOpacity>
@@ -126,6 +128,8 @@ export default function App() {
   const [online, setOnline] = useState(false);
   const [tab, setTab] = useState('Explore');
   const [profileOpen, setProfileOpen] = useState(false);
+  const [selectedMechanic, setSelectedMechanic] = useState<Mechanic | null>(null);
+  const [requestRefresh, setRequestRefresh] = useState(0);
   const [locationSharing, setLocationSharing] = useState(false);
   const [nearbyMechanics, setNearbyMechanics] = useState<Mechanic[]>([]);
   const [nearbyLoading, setNearbyLoading] = useState(false);
@@ -366,7 +370,7 @@ export default function App() {
         </TouchableOpacity>
       </View>
 
-      {role === 'customer' ? (
+      {tab === 'Activity' ? null : role === 'customer' ? (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.greetingRow}>
             <View>
@@ -396,7 +400,7 @@ export default function App() {
               </TouchableOpacity>
             ))}
           </ScrollView>
-          {visibleMechanics.map((mechanic) => <MechanicCard key={mechanic.id} mechanic={mechanic} />)}
+          {visibleMechanics.map((mechanic) => <MechanicCard key={mechanic.id} mechanic={mechanic} onRequest={setSelectedMechanic} />)}
           {!nearbyLoading && nearbyMechanics.length === 0 && <View style={styles.bottomNote}><Ionicons name="information-circle-outline" size={15} color="#89968D" /><Text style={styles.bottomNoteText}>Only verified mechanics who are online and have shared a recent location can appear here.</Text></View>}
         </ScrollView>
       ) : (
@@ -436,17 +440,19 @@ export default function App() {
         </ScrollView>
       )}
 
+      {selectedMechanic && session && <RequestHelpModal visible={!!selectedMechanic} customerId={session.user.id} mechanic={selectedMechanic} onClose={() => setSelectedMechanic(null)} onCreated={() => setRequestRefresh(v => v + 1)} />}
       <Modal visible={profileOpen} animationType="slide" onRequestClose={() => setProfileOpen(false)}>
         {session && <ProfileSetupScreen userId={session.user.id} role={role} onClose={() => setProfileOpen(false)} />}
       </Modal>
+      {tab === 'Activity' && session && <ServiceRequestsScreen key={`${role}-${requestRefresh}`} userId={session.user.id} role={role} />}
       <View style={styles.tabBar}>
         <TouchableOpacity style={styles.tabItem} onPress={() => setTab(role === 'customer' ? 'Explore' : 'Dashboard')}>
           <Ionicons name={role === 'customer' ? 'compass' : 'grid'} size={20} color="#C7F36B" /><Text style={styles.tabActiveText}>{role === 'customer' ? 'Explore' : 'Dashboard'}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.tabItem} onPress={() => Alert.alert('Activity', 'Your requests and job history will appear here.')}>
-          <Ionicons name="time-outline" size={20} color="#78857C" /><Text style={styles.tabText}>Activity</Text>
+        <TouchableOpacity style={styles.tabItem} onPress={() => setTab('Activity')}>
+          <Ionicons name="time-outline" size={20} color={tab === 'Activity' ? '#C7F36B' : '#78857C'} /><Text style={tab === 'Activity' ? styles.tabActiveText : styles.tabText}>Activity</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.tabItem} onPress={() => Alert.alert('Messages', 'Your customer and mechanic conversations will appear here.')}>
+        <TouchableOpacity style={styles.tabItem} onPress={() => Alert.alert('Messages coming next', 'Booking and request status are now available. Secure in-app chat is the next milestone.')}>
           <Ionicons name="chatbubble-ellipses-outline" size={20} color="#78857C" /><Text style={styles.tabText}>Messages</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.tabItem} onPress={() => setProfileOpen(true)}>

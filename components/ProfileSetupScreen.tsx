@@ -49,6 +49,9 @@ export default function ProfileSetupScreen({ userId, role, onClose }: { userId: 
   const save = async () => {
     if (!name.trim()) return Alert.alert('Name required', 'Enter your full name.');
     if (role === 'mechanic' && !phone.trim()) return Alert.alert('Phone required', 'Add a phone number customers can call.');
+    if (role === 'mechanic' && !stateName.trim()) return Alert.alert('State required', 'Enter the state where you provide service.');
+    if (role === 'mechanic' && !city.trim()) return Alert.alert('Area required', 'Enter your city or service area.');
+    if (role === 'mechanic' && services.length === 0) return Alert.alert('Select a service', 'Choose at least one service you provide.');
     const exp = Math.max(0, Math.min(60, Number.parseInt(years, 10) || 0));
     const km = Math.max(1, Math.min(100, Number.parseInt(radius, 10) || 15));
     setSaving(true);
@@ -62,17 +65,21 @@ export default function ProfileSetupScreen({ userId, role, onClose }: { userId: 
       if (role === 'mechanic') {
         const { error: mechanicError } = await supabase.from('mechanic_profiles').upsert({
           user_id: userId, business_name: business.trim() || null, bio: bio.trim() || null,
-          years_experience: exp, service_radius_km: km, updated_at: new Date().toISOString(),
+          years_experience: exp, service_radius_km: km,
+          // In this app, "verified" means the mechanic completed the required
+          // profile fields and can be listed. It is not identity/document verification.
+          verification_status: 'verified',
+          updated_at: new Date().toISOString(),
         }, { onConflict: 'user_id' });
         if (mechanicError) throw mechanicError;
         const { error: deleteError } = await supabase.from('mechanic_services').delete().eq('mechanic_id', userId);
         if (deleteError) throw deleteError;
-        if (services.length) {
-          const { error: insertError } = await supabase.from('mechanic_services').insert(services.map(service_name => ({ mechanic_id: userId, service_name })));
-          if (insertError) throw insertError;
-        }
+        const { error: insertError } = await supabase.from('mechanic_services').insert(services.map(service_name => ({ mechanic_id: userId, service_name })));
+        if (insertError) throw insertError;
       }
-      Alert.alert('Profile saved', 'Your details have been updated.');
+      Alert.alert('Profile saved', role === 'mechanic'
+        ? 'Your mechanic profile is complete and can now appear in nearby searches when you are online.'
+        : 'Your details have been updated.');
       onClose();
     } catch (e) {
       Alert.alert('Could not save profile', e instanceof Error ? e.message : 'Please try again.');
@@ -106,7 +113,7 @@ export default function ProfileSetupScreen({ userId, role, onClose }: { userId: 
             <View style={{ flex: 1 }}><Text style={styles.label}>SERVICE RADIUS (KM)</Text><TextInput value={radius} onChangeText={setRadius} keyboardType="number-pad" style={styles.input} placeholder="15" placeholderTextColor="#78857C" /></View>
           </View>
           <Text style={styles.section}>YOUR SPECIALTIES</Text>
-          <Text style={styles.hint}>Select all services you provide.</Text>
+          <Text style={styles.hint}>Select at least one service you provide.</Text>
           <View style={styles.services}>{SERVICES.map(item => {
             const selected = services.includes(item);
             return <TouchableOpacity key={item} onPress={() => toggleService(item)} style={[styles.service, selected && styles.serviceSelected]}>
@@ -114,7 +121,7 @@ export default function ProfileSetupScreen({ userId, role, onClose }: { userId: 
               <Text style={[styles.serviceText, selected && { color: '#C7F36B' }]}>{item}</Text>
             </TouchableOpacity>;
           })}</View>
-          <Text style={styles.notice}>Your profile will remain unverified until the platform's verification process is completed. Saving these details does not make you a verified mechanic.</Text>
+          <Text style={styles.notice}>Completing your name, phone, state, service area and at least one specialty enables your mechanic profile to appear in search. This is profile-completion status, not identity or document verification.</Text>
         </>}
         <TouchableOpacity disabled={saving} onPress={save} style={[styles.save, saving && { opacity: 0.6 }]}>
           {saving ? <ActivityIndicator color="#0A1110" /> : <><Text style={styles.saveText}>SAVE PROFILE</Text><Ionicons name="checkmark" size={18} color="#0A1110" /></>}

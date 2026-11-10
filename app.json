@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "Mechanic Near You",
+    "slug": "mechanic-near-you",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#0A1110"
+    },
+    "android": {
+      "package": "com.ezikechikelu.mechanicnearyou",
+      "adaptiveIcon": {
+        "backgroundColor": "#0A1110"
+      }
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow Mechanic Near You to show your location and find nearby mechanics."
+        }
+      ]
+    ]
+  }
+}

@@ -1,11 +1,8 @@
 node_modules/
-.env
-.env.*
 !.env.example
 .expo/
 dist/
 web-build/
-!.env.example
 *.log
 .DS_Store
 config.bat
